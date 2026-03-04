@@ -1,0 +1,2852 @@
+<!doctype html>
+<!--
+  This page is a living example: accessible, fast, semantic, and fun.
+  Comments throughout explain why things are built this way—semantic markup,
+  accessibility choices, and performance/UX decisions. Use it as a reference
+  when building your own sites.
+-->
+<html lang="en">
+  <head>
+    <!-- Charset first so the browser can parse the rest correctly. -->
+    <meta charset="utf-8" />
+    <!-- Viewport: without this, mobile browsers zoom out and break responsive layout. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cumbia & Coding</title>
+    <meta
+      name="description"
+      content="Dev + design resources, fun stuff, and an awesome cumbia/tejano playlist."
+    />
+    <!-- theme-color: mobile browser chrome (URL bar, etc.) uses this. Improves polish on phones. -->
+    <meta name="theme-color" content="#234c91" />
+
+    <style>
+      /*
+        Inline CSS keeps this single-file page fast (no extra request). For a larger
+        site you’d split this out. Structure: variables first, then reset/layout,
+        then components (header, hero, sections, cards), then a11y (skip link, focus,
+        reduced motion), then utilities.
+      */
+      /*
+        CSS variables live in :root so the whole page can use them.
+        We keep a small palette (--teal, --marigold, etc.) and derive everything
+        else with color-mix(). That way we stay accessible and consistent.
+      */
+      :root {
+        /* base colours — only these + --ink for text */
+        --teal: #25bcc0;
+        --marigold: #ffc95b;
+        --salsa: #d71919;
+        --grape: #234c91;
+        --orange: #f98f21;
+
+        /* Light tints for vibrant surfaces (accessible with --ink) */
+        --teal-light: color-mix(in srgb, var(--teal) 22%, white);
+        --marigold-light: color-mix(in srgb, var(--marigold) 28%, white);
+        --salsa-light: color-mix(in srgb, var(--salsa) 18%, white);
+        --grape-light: color-mix(in srgb, var(--grape) 20%, white);
+        --orange-light: color-mix(in srgb, var(--orange) 25%, white);
+
+        /* Text only */
+        --ink: #151515;
+        --link: var(--grape);
+        --link-hover: #1a3a6e;
+        --bg: color-mix(in srgb, var(--marigold) 22%, white);
+        --muted: color-mix(in srgb, var(--ink) 72%, var(--bg));
+        --card: color-mix(in srgb, var(--teal) 18%, var(--bg));
+        --panel: color-mix(in srgb, var(--marigold) 32%, var(--bg));
+        --border: color-mix(in srgb, var(--grape) 24%, var(--bg));
+        --border-strong: color-mix(in srgb, var(--grape) 38%, var(--bg));
+        --shadow-color: color-mix(in srgb, var(--grape) 18%, transparent);
+        --shadow: 0 12px 32px var(--shadow-color);
+        --shadow-card: 0 10px 24px var(--shadow-color);
+      }
+
+      /* box-sizing: border-box so padding doesn’t blow out our layout math. */
+      * {
+        box-sizing: border-box;
+      }
+      /*
+        min-height: 100% (not height: 100%) so sticky header works. With height: 100%,
+        the scroll container can misbehave and sticky won’t stick for the whole page.
+        scroll-behavior: smooth gives us smooth scroll on anchor links—no JS needed.
+      */
+      html {
+        min-height: 100%;
+        scroll-behavior: smooth;
+      }
+      /* Respect reduced motion: some users get sick from smooth scroll or animations. */
+      @media (prefers-reduced-motion: reduce) {
+        html { scroll-behavior: auto; }
+        .skipLink { transition: none; }
+      }
+      body {
+        min-height: 100%;
+        margin: 0;
+        color: var(--ink);
+        background: var(--bg);
+        font:
+          16px/1.55 system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Helvetica,
+          Arial,
+          sans-serif;
+
+        /* zine texture — grape from palette */
+        background-image:
+          radial-gradient(
+            color-mix(in srgb, var(--grape) 10%, transparent) 0.7px,
+            transparent 0.7px
+          ),
+          radial-gradient(
+            color-mix(in srgb, var(--grape) 6%, transparent) 0.7px,
+            transparent 0.7px
+          );
+        background-size:
+          18px 18px,
+          22px 22px;
+        background-position:
+          0 0,
+          9px 11px;
+      }
+
+      a {
+        color: var(--link);
+      }
+      a:hover {
+        color: var(--link-hover);
+        text-decoration-thickness: 3px;
+      }
+      .brand a,
+      nav a {
+        color: var(--ink);
+      }
+      .brand a:hover,
+      nav a:hover {
+        color: var(--link);
+      }
+      /*
+        focus-visible: only show the outline when the user is keyboard-navigating,
+        not on mouse click. Avoids the “focus ring on every click” problem.
+        Outline is thick and high-contrast for accessibility.
+      */
+      a:focus-visible {
+        outline: 3px solid var(--teal);
+        outline-offset: 2px;
+        border-radius: 6px;
+      }
+
+      /* Constrain width and center. min() keeps it responsive; 32px avoids edge-to-edge on small screens. */
+      .wrap {
+        width: min(1100px, calc(100% - 32px));
+        margin: 0 auto;
+      }
+
+      /*
+        Sticky header: stays at top while you scroll. backdrop-filter gives a
+        frosted-glass effect so content behind still shows a bit. z-index keeps
+        it above the main content.
+      */
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        backdrop-filter: blur(8px);
+        background: color-mix(in srgb, var(--bg) 88%, transparent);
+        border-bottom: 3px solid var(--grape);
+      }
+      .bar {
+        display: flex;
+        gap: 14px;
+        justify-content: space-between;
+        padding: 14px 0;
+        flex-direction: column;
+        @media (min-width: 600px) {
+          align-items: center;
+          flex-direction: row;
+        }
+      }
+      .brand {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+      }
+      .brand h1 {
+        margin: 0;
+        font-size: 18px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .brand .tag {
+        font-size: 12px;
+        color: var(--ink);
+        padding: 4px 8px;
+        border: 1px solid var(--grape);
+        border-radius: 999px;
+        background: var(--grape-light);
+      }
+
+      nav ul {
+        list-style: none;
+        display: flex;
+        margin: 0;
+        padding: 0;
+        flex-wrap: wrap;
+        @media (min-width: 600px) {
+          gap: 12px;
+        }
+      }
+      nav a {
+        display: inline-block;
+        text-decoration: none;
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: 1px solid transparent;
+      }
+      nav a:hover {
+        border-color: var(--teal);
+        background: var(--teal-light);
+      }
+
+      /* Hero */
+      main {
+        padding: 34px 0 0;
+      }
+      .hero {
+        position: relative;
+        padding: 26px 22px;
+        border: 2px solid var(--orange);
+        border-radius: 18px;
+        background: var(--panel);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+        margin-bottom: 2rem;
+      }
+      .hero::before {
+        content: "";
+        position: absolute;
+        inset: -40px -60px auto auto;
+        width: 240px;
+        height: 240px;
+        background:
+          radial-gradient(
+            circle at 30% 30%,
+            rgba(37, 188, 192, 0.35),
+            transparent 55%
+          ),
+          radial-gradient(
+            circle at 60% 70%,
+            rgba(255, 201, 91, 0.38),
+            transparent 55%
+          ),
+          radial-gradient(
+            circle at 35% 75%,
+            rgba(215, 25, 25, 0.28),
+            transparent 55%
+          ),
+          radial-gradient(
+            circle at 70% 30%,
+            rgba(249, 143, 33, 0.32),
+            transparent 50%
+          );
+        transform: rotate(18deg);
+        filter: blur(0px);
+        pointer-events: none;
+      }
+      .heroGrid {
+        display: grid;
+        grid-template-columns: 1.25fr 0.75fr;
+        gap: 18px;
+        align-items: start;
+      }
+      @media (max-width: 820px) {
+        .heroGrid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .hero h2 {
+        margin: 0 0 10px;
+        font-size: clamp(34px, 5vw, 56px);
+        line-height: 1.05;
+        letter-spacing: -0.03em;
+      }
+      .hero p {
+        margin: 0 0 14px;
+        color: var(--muted);
+        font-size: 16px;
+        max-width: 58ch;
+      }
+      .note {
+        display: inline-block;
+        margin-top: 8px;
+        font-size: 13px;
+        padding: 8px 10px;
+        border-radius: 14px;
+        border: 1px dashed var(--orange);
+        background: var(--orange-light);
+      }
+
+      /* Stickers */
+      .stickers {
+        display: grid;
+        gap: 10px;
+        align-content: start;
+      }
+      .sticker {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        width: fit-content;
+        padding: 8px 12px;
+        border-radius: 999px;
+        border: 1px solid var(--border-strong);
+        background: var(--card);
+        box-shadow: var(--shadow-card);
+        transform: rotate(-1deg);
+        font-size: 13px;
+        white-space: nowrap;
+      }
+      .sticker b {
+        font-weight: 700;
+      }
+      .sticker[data-color="teal"] {
+        background: var(--teal-light);
+        border-color: var(--teal);
+      }
+      .sticker[data-color="marigold"] {
+        background: var(--marigold-light);
+        border-color: var(--marigold);
+      }
+      .sticker[data-color="salsa"] {
+        background: var(--salsa-light);
+        border-color: var(--salsa);
+      }
+      .sticker[data-color="grape"] {
+        background: var(--grape-light);
+        border-color: var(--grape);
+      }
+
+      /* Sections */
+      section {
+        position: relative;
+        padding: 4rem 0;
+      }
+
+      /*
+        section::before: full-bleed background so each section can have its own
+        tint (playlist, dev, tools, etc.) without the content wrapper limiting width.
+        We use 100vw and translateX(-50%) so it goes edge to edge.
+      */
+      section::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        top: 0;
+        bottom: 0;
+        width: 100vw;
+        background: var(--section-bg, transparent);
+        z-index: -1;
+      }
+
+      /* Each section can override --section-bg, --card-bg, etc. so we get visual variety without losing contrast. */
+      section#playlist {
+        --section-bg: color-mix(in srgb, var(--marigold) 14%, transparent);
+        --card-bg: color-mix(in srgb, var(--marigold) 18%, white);
+        --card-border: color-mix(in srgb, var(--marigold) 55%, white);
+        --chip-bg: color-mix(in srgb, var(--marigold) 20%, white);
+        --chip-border: var(--marigold);
+        padding-top: 2rem;
+      }
+      section#dev {
+        --section-bg: color-mix(in srgb, var(--teal) 12%, transparent);
+        --card-bg: color-mix(in srgb, var(--teal) 16%, white);
+        --card-border: color-mix(in srgb, var(--teal) 62%, white);
+        --chip-bg: color-mix(in srgb, var(--teal) 18%, white);
+        --chip-border: var(--teal);
+      }
+      section#tools {
+        --section-bg: color-mix(in srgb, var(--orange) 12%, transparent);
+        --card-bg: color-mix(in srgb, var(--orange) 16%, white);
+        --card-border: color-mix(in srgb, var(--orange) 62%, white);
+        --chip-bg: color-mix(in srgb, var(--orange) 18%, white);
+        --chip-border: var(--orange);
+      }
+      section#design {
+        --section-bg: color-mix(in srgb, var(--grape) 10%, transparent);
+        --card-bg: color-mix(in srgb, var(--grape) 14%, white);
+        --card-border: color-mix(in srgb, var(--grape) 58%, white);
+        --chip-bg: color-mix(in srgb, var(--grape) 16%, white);
+        --chip-border: var(--grape);
+      }
+      section#fun {
+        --section-bg: color-mix(in srgb, var(--salsa) 10%, transparent);
+        --card-bg: color-mix(in srgb, var(--salsa) 12%, white);
+        --card-border: color-mix(in srgb, var(--salsa) 56%, white);
+        --chip-bg: color-mix(in srgb, var(--salsa) 14%, white);
+        --chip-border: var(--salsa);
+      }
+      section#about {
+        --section-bg: color-mix(in srgb, var(--grape) 8%, transparent);
+        padding-top: 2rem;
+      }
+
+      /* Section title: one h2 per section, id so we can link to it and aria-labelledby can point here. */
+      .sectionTitle {
+        margin: 0 0 6px;
+        font-size: 2rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        color: var(--ink);
+      }
+
+      /* Subsection: h3 + optional description. Keeps heading hierarchy (h1 → h2 → h3) logical. */
+      .sectionHead {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 2rem 0 1rem;
+        flex-direction: column;
+        @media (min-width: 600px) {
+          flex-direction: row;
+        }
+      }
+      section > .sectionHead:first-child {
+        margin-top: 0;
+      }
+      .sectionHead h3 {
+        margin: 0;
+        padding-left: 12px;
+        border-left: 4px solid var(--grape);
+        font-size: 20px;
+        letter-spacing: 0.02em;
+      }
+      .sectionHead .mini {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .panel {
+        border: 1px solid var(--panel-border, var(--border));
+        border-radius: 18px;
+        background: var(--panel-bg, var(--panel));
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+      .panelInner {
+        padding: 18px;
+      }
+
+      /* 12-column grid; .col-4 and .col-6 span 4 or 6. On narrow viewports we span 12 so cards stack. */
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 1rem;
+        padding-bottom: 2rem;
+      }
+      .col-6 {
+        grid-column: span 6;
+      }
+      .col-4 {
+        grid-column: span 4;
+      }
+      .col-12 {
+        grid-column: span 12;
+      }
+
+      @media (max-width: 900px) {
+        .col-6,
+        .col-4 {
+          grid-column: span 12;
+        }
+      }
+
+      /* Card styling. Section-specific --card-bg/--card-border override the defaults for per-section color. */
+      .card {
+        border: 1px solid var(--card-border, var(--border));
+        border-radius: 16px;
+        background: var(--card-bg, var(--card));
+        padding: 14px;
+        box-shadow: var(--shadow-card);
+      }
+      .card h4 {
+        margin: 0 0 6px;
+        font-size: 15px;
+        letter-spacing: 0.01em;
+      }
+      .card p {
+        margin: 0 0 10px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .chip {
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        font-size: 12px;
+        padding: 5px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--chip-border, var(--teal));
+        background: var(--chip-bg, var(--teal-light));
+      }
+
+      /* aspect-ratio keeps the iframe from collapsing before the video loads; no layout shift. */
+      .embedWrap {
+        aspect-ratio: 16 / 9;
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        overflow: hidden;
+        background: var(--card);
+      }
+      iframe {
+        width: 100%;
+        height: 100%;
+        border: 0;
+      }
+
+      /* Footer about */
+      footer {
+        margin-top: 28px;
+        padding: 20px 0 34px;
+        color: var(--muted);
+      }
+      .aboutRow {
+        display: flex;
+        gap: 14px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .avatar {
+        width: 76px;
+        height: 76px;
+        border-radius: 100%;
+        border: 1px solid var(--border-strong);
+        background: var(--card);
+        overflow: hidden;
+        flex: 0 0 auto;
+      }
+      .avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        filter: contrast(1.05) saturate(1.02);
+      }
+      .smallLinks {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 8px;
+      }
+      .smallLinks a {
+        text-decoration: none;
+        border-bottom: 2px solid var(--link);
+      }
+      .smallLinks a:hover {
+        border-bottom-color: var(--link-hover);
+      }
+
+      /*
+        Back to top: plain anchor to #top, no JavaScript. Visibility is controlled
+        by scroll-driven animations (animation-timeline: scroll(root)) in supporting
+        browsers; in others the button is always visible. When reduced motion is
+        preferred we turn off the animation and keep the button visible.
+      */
+      .backToTop {
+        position: fixed;
+        bottom: 1.25rem;
+        right: 1.25rem;
+        z-index: 20;
+        display: inline-block;
+        padding: 10px 16px;
+        font-size: 14px;
+        font-weight: 600;
+        text-decoration: none;
+        color: var(--ink);
+        background: var(--card);
+        border: 2px solid var(--grape);
+        border-radius: 999px;
+        box-shadow: var(--shadow-card);
+      }
+      @supports (animation-timeline: scroll(root)) {
+        .backToTop {
+          opacity: 0;
+          pointer-events: none;
+          animation: backToTopReveal linear forwards;
+          animation-timeline: scroll(root);
+          animation-range: 12% 18%;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .backToTop {
+          opacity: 1;
+          pointer-events: auto;
+          animation: none;
+        }
+      }
+      @keyframes backToTopReveal {
+        from {
+          opacity: 0;
+          pointer-events: none;
+        }
+        to {
+          opacity: 1;
+          pointer-events: auto;
+        }
+      }
+      .backToTop:hover {
+        background: var(--grape-light);
+        border-color: var(--grape);
+      }
+      .backToTop:focus-visible {
+        outline: 3px solid var(--teal);
+        outline-offset: 2px;
+      }
+
+      /*
+        Skip link: first focusable thing on the page. Hidden off-screen until
+        focused—keyboard users hit Tab once and can jump straight to main content
+        instead of tabbing through the whole nav. Screen readers announce it too.
+      */
+      .skipLink {
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 100;
+        padding: 0.75rem 1rem;
+        background: var(--grape);
+        color: white;
+        font-weight: 600;
+        text-decoration: none;
+        transform: translateY(-100%);
+        transition: transform 0.2s;
+      }
+      .skipLink:focus {
+        transform: translateY(0);
+        outline: 3px solid var(--teal);
+        outline-offset: 2px;
+      }
+
+      /* Visually hidden but still in the accessibility tree (for screen readers). */
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Skip link must be first focusable element. No need to be visible until focused. -->
+    <a href="#main-content" class="skipLink">Skip to main content</a>
+    <!--
+      header: site-wide banner. Contains the logo (h1) and primary nav.
+      One h1 per page—here it’s the site name.
+    -->
+    <header>
+      <div class="wrap bar">
+        <div class="brand">
+          <h1>Cumbia &amp; Coding</h1>
+          <span class="tag">A resource shrine</span>
+        </div>
+        <!-- aria-label so screen readers know this is the main nav, not just “navigation”. -->
+        <!-- ul/li: a list of links is a list—screen readers can announce “list of 6 items”. -->
+        <nav aria-label="Primary">
+          <ul>
+            <li><a href="#playlist">Playlist</a></li>
+            <li><a href="#dev">Resources</a></li>
+            <li><a href="#tools">Toolbox</a></li>
+            <li><a href="#design">Design</a></li>
+            <li><a href="#fun">Careers + Fun</a></li>
+            <li><a href="#about">About</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <!--
+      main: the primary content of the page. id="main-content" is the target
+      of the skip link so keyboard users land here. role="main" is redundant
+      (main has it implicitly) but doesn’t hurt for older assistive tech.
+    -->
+    <main id="main-content" class="wrap" role="main">
+      <!-- Hero: intro block. id="top" is the target for “Back to top” link. -->
+      <div class="hero" id="top">
+        <div class="heroGrid">
+          <div>
+            <h2>Cumbia &amp; Coding</h2>
+            <p>
+              A one-page stash of dev + design resources, plus music for
+              shipping websites like your rent depends on it.
+            </p>
+            <div class="note">
+              No hustle. No call-to-action (CTA). Just links, music, and good
+              taste.
+            </div>
+          </div>
+
+          <!-- List of short “sticker” blurbs. aria-label describes the group. -->
+          <div class="stickers" aria-label="Stickers">
+            <!-- aria-hidden on emoji so screen readers don’t read “emoji music” etc. -->
+            <div class="sticker" data-color="teal">
+              <span aria-hidden="true">🎛️</span> <b>Certified bangers</b> only
+            </div>
+            <div class="sticker" data-color="marigold">
+              <span aria-hidden="true">🧪</span> Weird internet approved
+            </div>
+            <div class="sticker" data-color="salsa">
+              <span aria-hidden="true">🕯️</span> Debugging candle energy
+            </div>
+            <div class="sticker" data-color="grape">
+              <span aria-hidden="true">👣</span> Cryptid-adjacent
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!--
+        section: each major part of the page is a <section> with an id for
+        in-page links. aria-labelledby points to the section’s h2 so screen
+        readers can announce the section name when you land on it.
+      -->
+      <!-- PLAYLIST -->
+      <section id="playlist" aria-labelledby="playlist-title">
+        <!-- id on h2 so aria-labelledby can reference it; screen readers then get “Playlist” as section name. -->
+        <h2 id="playlist-title" class="sectionTitle">Playlist</h2>
+        <div class="sectionHead">
+          <h3>The Playlist</h3>
+          <p class="mini">Cumbia/Tejano fuel for building and fixing.</p>
+        </div>
+
+        <div class="panel">
+          <div class="panelInner">
+            <!-- Wrapper for the embed; aria-label describes it for assistive tech. -->
+            <div class="embedWrap" aria-label="YouTube playlist embed">
+              <!-- title required for a11y. loading="lazy" defers load until near viewport. referrerpolicy limits what the embed gets. -->
+              <iframe
+                width="560"
+                height="315"
+                src="https://www.youtube.com/embed/videoseries?si=6oTc1ff5mFSGlnOY&amp;list=PL4tQGGzJn4sg88jzTKDd_0_y3qAaB1g9x"
+                title="YouTube playlist: Cumbia and Tejano music"
+                loading="lazy"
+                frameborder="0"
+                allow="
+                  accelerometer;
+                  autoplay;
+                  clipboard-write;
+                  encrypted-media;
+                  gyroscope;
+                  picture-in-picture;
+                  web-share;
+                "
+                referrerpolicy="strict-origin-when-cross-origin"
+                allowfullscreen
+              ></iframe>
+            </div>
+
+            <p style="margin: 12px 0 0; color: var(--muted); font-size: 13px">
+              If the embed ever breaks:
+              <a
+                href="https://www.youtube.com/playlist?list=PL4tQGGzJn4sg88jzTKDd_0_y3qAaB1g9x"
+                target="_blank"
+                rel="noreferrer"
+              >
+                open the playlist on YouTube </a
+              >.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- DEV -->
+      <section id="dev" aria-labelledby="dev-title">
+        <h2 id="dev-title" class="sectionTitle">Resources</h2>
+        <div class="sectionHead">
+          <h3>Tips &amp; Cheatsheets</h3>
+          <p class="mini">Quick references and cool docs.</p>
+        </div>
+        <!--
+          Each resource is an <article>: self-contained content that could stand alone.
+          Grid uses 12 columns; col-4 = 4 columns each so we get 3 cards per row on large screens.
+          External links use target="_blank" rel="noreferrer": open in new tab, don’t pass referrer (privacy + security).
+        -->
+        <div class="grid">
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://gist.github.com/leroyrosales/0d74b3adf2c0ff3af041c7c9f8cd7c70"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Gist of Generators</a
+                >
+              </h4>
+              <p>Curated list of generators for dev and design.</p>
+              <div class="chips"><span class="chip">Gist</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Markdown Cheatsheet</a
+                >
+              </h4>
+              <p>Quick reference for Markdown syntax.</p>
+              <div class="chips"><span class="chip">Markdown</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://gist.github.com/bradtraversy/f03df587f2323b50beb4250520089a9e"
+                  target="_blank"
+                  rel="noreferrer"
+                  >SSH Cheatsheet</a
+                >
+              </h4>
+              <p>SSH commands and tips.</p>
+              <div class="chips"><span class="chip">SSH</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://learnxinyminutes.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Learn X in Y minutes</a
+                >
+              </h4>
+              <p>Quick language and tool overviews.</p>
+              <div class="chips"><span class="chip">Cheatsheet</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://crontab.guru/" target="_blank" rel="noreferrer"
+                  >Crontab Guru</a
+                >
+              </h4>
+              <p>Cron expression editor and cheatsheet.</p>
+              <div class="chips"><span class="chip">Cron</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://devdocs.io" target="_blank" rel="noreferrer"
+                  >DevDocs</a
+                >
+              </h4>
+              <p>Organized docs for popular web technologies.</p>
+              <div class="chips"><span class="chip">Docs</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="sectionHead">
+          <h3>Docs &amp; Learning</h3>
+          <p class="mini">Awesome lists, handbooks, and free resources.</p>
+        </div>
+        <div class="grid">
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://github.com/awesome-selfhosted/awesome-selfhosted"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Awesome Self Hosted</a
+                >
+              </h4>
+              <p>Curated list of self-hosted software.</p>
+              <div class="chips"><span class="chip">List</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://github.com/8483/notes"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Full-stack web dev notes</a
+                >
+              </h4>
+              <p>Comprehensive web development notes.</p>
+              <div class="chips"><span class="chip">Notes</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://github.com/LisaDziuba/Awesome-Design-Tools"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Awesome Design Tools</a
+                >
+              </h4>
+              <p>Curated design tools list.</p>
+              <div class="chips"><span class="chip">Design</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://github.com/LisaDziuba/Women-Made-It"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Women Made It</a
+                >
+              </h4>
+              <p>Products and projects by women in tech.</p>
+              <div class="chips"><span class="chip">Community</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://github.com/stackshareio/awesome-stacks"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Awesome Stacks</a
+                >
+              </h4>
+              <p>Tech stacks used by companies.</p>
+              <div class="chips"><span class="chip">Stacks</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://frontendmasters.com/guides/front-end-handbook/2024/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Front-end Dev Handbook 2024</a
+                >
+              </h4>
+              <p>Super awesome front-end resource.</p>
+              <div class="chips"><span class="chip">Handbook</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://github.com/kylelobo/The-Documentation-Compendium/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >The Documentation Compendium</a
+                >
+              </h4>
+              <p>Curated list of documentation resources.</p>
+              <div class="chips"><span class="chip">Docs</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="http://csillustrated.berkeley.edu"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Computer Science Illustrated</a
+                >
+              </h4>
+              <p>Visual CS concepts.</p>
+              <div class="chips"><span class="chip">CS</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://serversforhackers.com/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Server Admin for Programmers</a
+                >
+              </h4>
+              <p>Server administration for developers.</p>
+              <div class="chips"><span class="chip">DevOps</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://abseil.io/resources/swe-book"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Software Engineering at Google</a
+                >
+              </h4>
+              <p>Free book on SWE practices.</p>
+              <div class="chips"><span class="chip">Book</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://www.boot.dev/" target="_blank" rel="noreferrer"
+                  >Boot Dev</a
+                >
+              </h4>
+              <p>Learn backend development.</p>
+              <div class="chips"><span class="chip">Learning</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://www.freecodecamp.org" target="_blank" rel="noreferrer"
+                  >freeCodeCamp</a
+                >
+              </h4>
+              <p>Free coding curriculum and certifications.</p>
+              <div class="chips"><span class="chip">Learning</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://www.w3schools.com" target="_blank" rel="noreferrer"
+                  >W3Schools</a
+                >
+              </h4>
+              <p>Tutorials and references for web technologies.</p>
+              <div class="chips"><span class="chip">Learning</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://www.youtube.com/playlist?list=PLillGF-RfqbZTASqIqdvm1R5mLrQq79CU" target="_blank" rel="noreferrer"
+                  >Traversy Media</a
+                >
+              </h4>
+              <p>Web dev tutorial playlists (HTML, CSS, JS, and more).</p>
+              <div class="chips"><span class="chip">Learning</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://www.hispanichackers.com/resources" target="_blank" rel="noreferrer"
+                  >Hispanic Hackers</a
+                >
+              </h4>
+              <p>Resources and community for Hispanic developers.</p>
+              <div class="chips"><span class="chip">Community</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://github.com/leroyrosales/husband-guide-to-html" target="_blank" rel="noreferrer"
+                  >A husband's guide to HTML</a
+                >
+              </h4>
+              <p>Friendly intro to HTML for non-devs.</p>
+              <div class="chips"><span class="chip">HTML</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://dnsimple.com/comics" target="_blank" rel="noreferrer"
+                  >DNSimple Comics</a
+                >
+              </h4>
+              <p>Comics that explain DNS and domains.</p>
+              <div class="chips"><span class="chip">DNS</span></div>
+            </div>
+          </article>
+        </div>
+        <div class="sectionHead">
+          <h3>Core Dev</h3>
+          <p class="mini">MDN, web.dev, a11y, and more.</p>
+        </div>
+        <div class="grid">
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://developer.mozilla.org/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >MDN Web Docs</a
+                >
+              </h4>
+              <p>The home base for web fundamentals.</p>
+              <div class="chips">
+                <span class="chip">HTML</span><span class="chip">CSS</span
+                ><span class="chip">JS</span>
+              </div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://web.dev/" target="_blank" rel="noreferrer"
+                  >web.dev</a
+                >
+              </h4>
+              <p>Performance, UX, and modern web patterns.</p>
+              <div class="chips">
+                <span class="chip">Performance</span
+                ><span class="chip">Lighthouse</span>
+              </div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://www.a11yproject.com/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >The A11Y Project</a
+                >
+              </h4>
+              <p>Practical accessibility guidance.</p>
+              <div class="chips"><span class="chip">A11Y</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://webaim.org/" target="_blank" rel="noreferrer"
+                  >WebAIM</a
+                >
+              </h4>
+              <p>Contrast, structure, screen reader basics.</p>
+              <div class="chips"><span class="chip">A11Y</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://javascript.info/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >JavaScript.info</a
+                >
+              </h4>
+              <p>Deep, clear JS explanations.</p>
+              <div class="chips"><span class="chip">JS</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://www.getstark.co/library/collections/accessibility-tips,-tricks,-and-resources-for-developers/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Stark Accessibility Tips</a
+                >
+              </h4>
+              <p>Accessibility tips and resources for devs.</p>
+              <div class="chips"><span class="chip">A11Y</span></div>
+            </div>
+          </article>
+        </div>
+        <div class="sectionHead">
+          <h3>PHP &amp; WordPress</h3>
+          <p class="mini">PHP the right way; WP-CLI and snippets.</p>
+        </div>
+        <div class="grid">
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://phptherightway.com/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >PHP The Right Way</a
+                >
+              </h4>
+              <p>Best practices and modern PHP.</p>
+              <div class="chips"><span class="chip">PHP</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://www.liquidweb.com/kb/8-wp-cli-commands-to-clean-up-and-optimize-your-site/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >WP-CLI Commands to Optimize</a
+                >
+              </h4>
+              <p>Database optimization and cleanup.</p>
+              <div class="chips"><span class="chip">WP-CLI</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://github.com/dalenguyen/wordpress-snippets"
+                  target="_blank"
+                  rel="noreferrer"
+                  >WordPress snippets</a
+                >
+              </h4>
+              <p>Useful code snippets for WordPress.</p>
+              <div class="chips"><span class="chip">Snippets</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="sectionHead">
+          <h3>Performance &amp; Optimization</h3>
+          <p class="mini">Server and front-end performance.</p>
+        </div>
+        <div class="grid">
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://www.digitalocean.com/community/questions/how-to-optimize-the-server-for-getting-high-traffic-even-in-5-droplet-plan"
+                  target="_blank"
+                  rel="noreferrer"
+                  >DigitalOcean Optimization</a
+                >
+              </h4>
+              <p>Optimize server for high traffic.</p>
+              <div class="chips"><span class="chip">Server</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://www.debugbear.com/html-size-analyzer"
+                  target="_blank"
+                  rel="noreferrer"
+                  >HTML Analyzer</a
+                >
+              </h4>
+              <p>Analyze HTML size and structure.</p>
+              <div class="chips"><span class="chip">Performance</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://www.webpagetest.org/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >WebPageTest</a
+                >
+              </h4>
+              <p>Speed and performance testing.</p>
+              <div class="chips"><span class="chip">Performance</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://yellowlab.tools/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Yellow Lab Tools</a
+                >
+              </h4>
+              <p>Front-end performance and quality.</p>
+              <div class="chips"><span class="chip">Performance</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="sectionHead">
+          <h3>Code &amp; Template Resources</h3>
+          <p class="mini">Themes, templates, datasets, and tools.</p>
+        </div>
+        <div class="grid">
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://themewagon.com/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Theme Wagon</a
+                >
+              </h4>
+              <p>Free and premium HTML templates.</p>
+              <div class="chips"><span class="chip">Templates</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://www.creative-tim.com/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Creative Tim</a
+                >
+              </h4>
+              <p>UI kits and dashboard templates.</p>
+              <div class="chips"><span class="chip">Templates</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://html5up.net/" target="_blank" rel="noreferrer"
+                  >HTML5 Up</a
+                >
+              </h4>
+              <p>Free responsive HTML5 templates.</p>
+              <div class="chips"><span class="chip">Templates</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://www.kaggle.com/datasets"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Kaggle Datasets</a
+                >
+              </h4>
+              <p>Datasets for ML and analysis.</p>
+              <div class="chips"><span class="chip">Data</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://toffeeshare.com/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Toffeeshare</a
+                >
+              </h4>
+              <p>Share files peer-to-peer with encryption.</p>
+              <div class="chips"><span class="chip">P2P</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TOOLS -->
+      <section id="tools" aria-labelledby="tools-title">
+        <h2 id="tools-title" class="sectionTitle">Toolbox</h2>
+        <div class="sectionHead">
+          <h3>Generators</h3>
+          <p class="mini">
+            Text, favicons, data, mockups, UUIDs, hashes, code.
+          </p>
+        </div>
+        <div class="grid">
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="http://www.lipsum.com" target="_blank" rel="noreferrer"
+                  >Lorem Ipsum</a
+                >
+              </h4>
+              <p>Text content generator.</p>
+              <div class="chips"><span class="chip">Text</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://mockaroo.com/" target="_blank" rel="noreferrer"
+                  >Mockaroo</a
+                >
+              </h4>
+              <p>Data generator for testing.</p>
+              <div class="chips"><span class="chip">Data</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://mockuphone.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Mockuphone</a
+                >
+              </h4>
+              <p>Mobile mockup generator.</p>
+              <div class="chips"><span class="chip">Mockup</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://www.uuidgenerator.net/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >UUID Generator</a
+                >
+              </h4>
+              <p>Generate UUIDs.</p>
+              <div class="chips"><span class="chip">UUID</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://webcode.tools/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Ultimate Code Generator</a
+                >
+              </h4>
+              <p>HTML, CSS, and more code generators.</p>
+              <div class="chips"><span class="chip">Code</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="sectionHead">
+          <h3>Image Resources</h3>
+          <p class="mini">Stock photos, placeholders, icons.</p>
+        </div>
+        <div class="grid">
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://www.pexels.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Pexels</a
+                >
+              </h4>
+              <p>Free stock images.</p>
+              <div class="chips"><span class="chip">Photos</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://unsplash.com/" target="_blank" rel="noreferrer"
+                  >Unsplash</a
+                >
+              </h4>
+              <p>Free stock images with great API.</p>
+              <div class="chips"><span class="chip">Photos</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://www.freepik.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Freepik</a
+                >
+              </h4>
+              <p>Vectors, mockups, and more.</p>
+              <div class="chips"><span class="chip">Vectors</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://www.iconfinder.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Iconfinder</a
+                >
+              </h4>
+              <p>Free and premium icons.</p>
+              <div class="chips"><span class="chip">Icons</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="sectionHead">
+          <h3>Image Compression</h3>
+          <p class="mini">Compress JPG, PNG, and images for the web.</p>
+        </div>
+        <div class="grid">
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://compressor.io/compress"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Compressor.io</a
+                >
+              </h4>
+              <p>Compress all image formats.</p>
+              <div class="chips"><span class="chip">Compress</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://tinypng.com/" target="_blank" rel="noreferrer"
+                  >TinyPNG</a
+                >
+              </h4>
+              <p>Compress PNG and JPEG.</p>
+              <div class="chips"><span class="chip">Compress</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="sectionHead">
+          <h3>Converters &amp; Optimization</h3>
+          <p class="mini">Minify, convert, validate.</p>
+        </div>
+        <div class="grid">
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="http://minifier.org" target="_blank" rel="noreferrer"
+                  >Minifier</a
+                >
+              </h4>
+              <p>Minify JS and CSS.</p>
+              <div class="chips"><span class="chip">Minify</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://babeljs.io/repl"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Babel REPL</a
+                >
+              </h4>
+              <p>ES6+ and JSX compiler.</p>
+              <div class="chips"><span class="chip">JS</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://validator.w3.org"
+                  target="_blank"
+                  rel="noreferrer"
+                  >W3C HTML Validator</a
+                >
+              </h4>
+              <p>Validate HTML.</p>
+              <div class="chips"><span class="chip">Validation</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://jigsaw.w3.org/css-validator"
+                  target="_blank"
+                  rel="noreferrer"
+                  >W3C CSS Validator</a
+                >
+              </h4>
+              <p>Validate CSS.</p>
+              <div class="chips"><span class="chip">Validation</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://caniuse.com/" target="_blank" rel="noreferrer"
+                  >Can I Use</a
+                >
+              </h4>
+              <p>Browser compatibility tables.</p>
+              <div class="chips"><span class="chip">Compat</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="sectionHead">
+          <h3>In-Browser Coding &amp; Snippets</h3>
+          <p class="mini">CodePen, JSFiddle, Gist, and more.</p>
+        </div>
+        <div class="grid">
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://codepen.io" target="_blank" rel="noreferrer"
+                  >CodePen</a
+                >
+              </h4>
+              <p>Client-side code playground.</p>
+              <div class="chips"><span class="chip">Playground</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://jsfiddle.net" target="_blank" rel="noreferrer"
+                  >JSFiddle</a
+                >
+              </h4>
+              <p>Client-side code playground.</p>
+              <div class="chips"><span class="chip">Playground</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://gist.github.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Gist</a
+                >
+              </h4>
+              <p>Snippet manager and sharing.</p>
+              <div class="chips"><span class="chip">Snippets</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://github.com/toddmotto/public-apis"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Public APIs</a
+                >
+              </h4>
+              <p>Curated list of public API resources.</p>
+              <div class="chips"><span class="chip">API</span></div>
+            </div>
+          </article>
+        </div>
+        <div class="sectionHead">
+          <h3>Editors &amp; IDEs</h3>
+          <p class="mini">Code editors and development environments.</p>
+        </div>
+        <div class="grid">
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://code.visualstudio.com" target="_blank" rel="noreferrer"
+                  >Visual Studio Code</a
+                >
+              </h4>
+              <p>Popular free code editor by Microsoft.</p>
+              <div class="chips"><span class="chip">Editor</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://www.sublimetext.com" target="_blank" rel="noreferrer"
+                  >Sublime Text</a
+                >
+              </h4>
+              <p>Fast, lightweight code editor.</p>
+              <div class="chips"><span class="chip">Editor</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://codesandbox.io" target="_blank" rel="noreferrer"
+                  >CodeSandbox</a
+                >
+              </h4>
+              <p>Online IDE for web development and collaboration.</p>
+              <div class="chips"><span class="chip">Online IDE</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://notepad-plus-plus.org" target="_blank" rel="noreferrer"
+                  >Notepad++</a
+                >
+              </h4>
+              <p>Free source code editor for Windows.</p>
+              <div class="chips"><span class="chip">Editor</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://www.nano-editor.org" target="_blank" rel="noreferrer"
+                  >Nano</a
+                >
+              </h4>
+              <p>Simple terminal text editor (GNU).</p>
+              <div class="chips"><span class="chip">Terminal</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://www.jetbrains.com" target="_blank" rel="noreferrer"
+                  >JetBrains</a
+                >
+              </h4>
+              <p>IDEs: IntelliJ, WebStorm, PyCharm, and more.</p>
+              <div class="chips"><span class="chip">IDE</span></div>
+            </div>
+          </article>
+        </div>
+        <div class="sectionHead">
+          <h3>Color, Responsiveness &amp; Speed</h3>
+          <p class="mini">
+            Color tools, device testing, wireframes, speed tests.
+          </p>
+        </div>
+        <div class="grid">
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://color.hailpixel.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Hail Pixel Color</a
+                >
+              </h4>
+              <p>Create color schemes.</p>
+              <div class="chips"><span class="chip">Color</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://uigradients.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  >UI Gradients</a
+                >
+              </h4>
+              <p>Create gradients.</p>
+              <div class="chips"><span class="chip">Gradients</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://app.moqups.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Moqups</a
+                >
+              </h4>
+              <p>In-browser wireframing.</p>
+              <div class="chips"><span class="chip">Wireframe</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://tools.pingdom.com/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Pingdom Speed Test</a
+                >
+              </h4>
+              <p>Speed and performance testing.</p>
+              <div class="chips"><span class="chip">Speed</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="sectionHead">
+          <h3>No-Code / Page Builders</h3>
+          <p class="mini">One-page and simple site builders, no code required.</p>
+        </div>
+        <div class="grid">
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://carrd.io" target="_blank" rel="noreferrer"
+                  >Carrd</a
+                >
+              </h4>
+              <p>Simple one-page site builder.</p>
+              <div class="chips"><span class="chip">No-code</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://mmm.page" target="_blank" rel="noreferrer"
+                  >mmm.page</a
+                >
+              </h4>
+              <p>Freeform, no-code page builder.</p>
+              <div class="chips"><span class="chip">No-code</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://straw.page" target="_blank" rel="noreferrer"
+                  >Straw.Page</a
+                >
+              </h4>
+              <p>Simple no-code page builder.</p>
+              <div class="chips"><span class="chip">No-code</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://www.strikingly.com" target="_blank" rel="noreferrer"
+                  >Strikingly</a
+                >
+              </h4>
+              <p>One-page and mobile-friendly site builder.</p>
+              <div class="chips"><span class="chip">No-code</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://www.pixpa.com" target="_blank" rel="noreferrer"
+                  >Pixpa</a
+                >
+              </h4>
+              <p>Portfolio and website builder for creatives.</p>
+              <div class="chips"><span class="chip">No-code</span></div>
+            </div>
+          </article>
+        </div>
+        <div class="sectionHead">
+          <h3>Low-Code / Website Builders</h3>
+          <p class="mini">Visual site builders with more control and customization.</p>
+        </div>
+        <div class="grid">
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://www.wix.com" target="_blank" rel="noreferrer"
+                  >Wix</a
+                >
+              </h4>
+              <p>Website builder with templates and drag-and-drop.</p>
+              <div class="chips"><span class="chip">Low-code</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://www.weebly.com" target="_blank" rel="noreferrer"
+                  >Weebly</a
+                >
+              </h4>
+              <p>Website and e‑commerce builder.</p>
+              <div class="chips"><span class="chip">Low-code</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://www.squarespace.com" target="_blank" rel="noreferrer"
+                  >Squarespace</a
+                >
+              </h4>
+              <p>Design-focused website and store builder.</p>
+              <div class="chips"><span class="chip">Low-code</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://webflow.com" target="_blank" rel="noreferrer"
+                  >Webflow</a
+                >
+              </h4>
+              <p>Visual web design and CMS platform.</p>
+              <div class="chips"><span class="chip">Low-code</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://www.framer.com" target="_blank" rel="noreferrer"
+                  >Framer</a
+                >
+              </h4>
+              <p>Design and prototyping tool for web and product.</p>
+              <div class="chips"><span class="chip">Low-code</span></div>
+            </div>
+          </article>
+        </div>
+        <div class="sectionHead">
+          <h3>Domains</h3>
+          <p class="mini">TLD lists and domain reference.</p>
+        </div>
+        <div class="grid">
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://tld-list.com" target="_blank" rel="noreferrer"
+                  >TLD List</a
+                >
+              </h4>
+              <p>Browse and compare top-level domains and pricing.</p>
+              <div class="chips"><span class="chip">Domains</span></div>
+            </div>
+          </article>
+        </div>
+        <div class="sectionHead">
+          <h3>Static Site Hosting</h3>
+          <p class="mini">Host static and JAMstack sites for free or cheap.</p>
+        </div>
+        <div class="grid">
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://neocities.org" target="_blank" rel="noreferrer"
+                  >Neocities</a
+                >
+              </h4>
+              <p>Free static hosting with a throwback vibe.</p>
+              <div class="chips"><span class="chip">Static</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://netlify.com" target="_blank" rel="noreferrer"
+                  >Netlify</a
+                >
+              </h4>
+              <p>Static hosting, serverless, and deploy previews.</p>
+              <div class="chips"><span class="chip">Static</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://vercel.com" target="_blank" rel="noreferrer"
+                  >Vercel</a
+                >
+              </h4>
+              <p>Static and serverless hosting, great for Next.js.</p>
+              <div class="chips"><span class="chip">Static</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://static.app" target="_blank" rel="noreferrer"
+                  >Static.app</a
+                >
+              </h4>
+              <p>Simple static site hosting.</p>
+              <div class="chips"><span class="chip">Static</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://pages.github.com" target="_blank" rel="noreferrer"
+                  >GitHub Pages</a
+                >
+              </h4>
+              <p>Free static hosting from your GitHub repos.</p>
+              <div class="chips"><span class="chip">Static</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://pages.cloudflare.com" target="_blank" rel="noreferrer"
+                  >Cloudflare Pages</a
+                >
+              </h4>
+              <p>Static hosting with global CDN and Git integration.</p>
+              <div class="chips"><span class="chip">Static</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://surge.sh" target="_blank" rel="noreferrer"
+                  >surge.sh</a
+                >
+              </h4>
+              <p>Simple CLI static hosting.</p>
+              <div class="chips"><span class="chip">Static</span></div>
+            </div>
+          </article>
+        </div>
+        <div class="sectionHead">
+          <h3>Content Management Systems (CMS)</h3>
+          <p class="mini">Content management systems and site builders.</p>
+        </div>
+        <div class="grid">
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://wordpress.org" target="_blank" rel="noreferrer"
+                  >WordPress</a
+                >
+              </h4>
+              <p>Open-source CMS powering a huge share of the web.</p>
+              <div class="chips"><span class="chip">CMS</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://www.shopify.com" target="_blank" rel="noreferrer"
+                  >Shopify</a
+                >
+              </h4>
+              <p>E‑commerce and online store platform.</p>
+              <div class="chips"><span class="chip">CMS</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://www.wix.com" target="_blank" rel="noreferrer"
+                  >Wix</a
+                >
+              </h4>
+              <p>Website builder with templates and drag-and-drop.</p>
+              <div class="chips"><span class="chip">CMS</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://www.squarespace.com" target="_blank" rel="noreferrer"
+                  >Squarespace</a
+                >
+              </h4>
+              <p>Design-focused website and store builder.</p>
+              <div class="chips"><span class="chip">CMS</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://webflow.com" target="_blank" rel="noreferrer"
+                  >Webflow</a
+                >
+              </h4>
+              <p>Visual web design and CMS platform.</p>
+              <div class="chips"><span class="chip">CMS</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://www.joomla.org" target="_blank" rel="noreferrer"
+                  >Joomla</a
+                >
+              </h4>
+              <p>Open-source CMS for websites and apps.</p>
+              <div class="chips"><span class="chip">CMS</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://www.drupal.org" target="_blank" rel="noreferrer"
+                  >Drupal</a
+                >
+              </h4>
+              <p>Open-source CMS for ambitious sites and apps.</p>
+              <div class="chips"><span class="chip">CMS</span></div>
+            </div>
+          </article>
+        </div>
+        <div class="sectionHead">
+          <h3>Jamstack / Static Site Generators</h3>
+          <p class="mini">Frameworks and tools for static and hybrid sites.</p>
+        </div>
+        <div class="grid">
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://nextjs.org" target="_blank" rel="noreferrer"
+                  >Next.js</a
+                >
+              </h4>
+              <p>React framework with SSG, SSR, and API routes.</p>
+              <div class="chips"><span class="chip">Jamstack</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://gohugo.io" target="_blank" rel="noreferrer"
+                  >Hugo</a
+                >
+              </h4>
+              <p>Fast static site generator in Go.</p>
+              <div class="chips"><span class="chip">Jamstack</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://11ty.dev" target="_blank" rel="noreferrer"
+                  >11ty (Eleventy)</a
+                >
+              </h4>
+              <p>Simple, flexible static site generator.</p>
+              <div class="chips"><span class="chip">Jamstack</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://jekyllrb.com" target="_blank" rel="noreferrer"
+                  >Jekyll</a
+                >
+              </h4>
+              <p>Static site generator (Ruby), used by GitHub Pages.</p>
+              <div class="chips"><span class="chip">Jamstack</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://astro.build" target="_blank" rel="noreferrer"
+                  >Astro</a
+                >
+              </h4>
+              <p>Content-focused static site builder with islands.</p>
+              <div class="chips"><span class="chip">Jamstack</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://docusaurus.io" target="_blank" rel="noreferrer"
+                  >Docusaurus</a
+                >
+              </h4>
+              <p>Documentation sites built with React.</p>
+              <div class="chips"><span class="chip">Jamstack</span></div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- DESIGN -->
+      <section id="design" aria-labelledby="design-title">
+        <h2 id="design-title" class="sectionTitle">Design</h2>
+        <div class="sectionHead">
+          <h3>Design Inspiration &amp; Resources</h3>
+          <p class="mini">
+            Where to find good web design inspiration and curated design tools.
+          </p>
+        </div>
+        <div class="grid">
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://www.reddit.com/r/webdev/comments/14vrsqk/where_do_you_find_good_web_design_inspiration/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Where do you find GOOD Web Design inspiration?</a
+                >
+              </h4>
+              <p>Reddit discussion on finding quality design inspiration.</p>
+              <div class="chips"><span class="chip">Inspo</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://kotilabdulkadir.notion.site/The-Ultimate-450-Websites-Directory-for-Freelancers-Solopreneurs-b48bf26f94d1442aa2ead96ee139161a"
+                  target="_blank"
+                  rel="noreferrer"
+                  >450+ Design Websites Directory</a
+                >
+              </h4>
+              <p>Ultimate directory for freelancers and solopreneurs.</p>
+              <div class="chips"><span class="chip">Directory</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://www.landing.love/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Landing Love</a
+                >
+              </h4>
+              <p>Landing page design inspiration.</p>
+              <div class="chips"><span class="chip">Landing</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://www.landingfolio.com/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Landing Folio</a
+                >
+              </h4>
+              <p>Landing page examples and inspiration.</p>
+              <div class="chips"><span class="chip">Landing</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://www.figmacrashcourse.com/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Figma Crash Course</a
+                >
+              </h4>
+              <p>Learn Figma fast.</p>
+              <div class="chips"><span class="chip">Figma</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://github.com/bradtraversy/design-resources-for-developers"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Design Resources for Developers</a
+                >
+              </h4>
+              <p>Curated list of design resources for devs.</p>
+              <div class="chips"><span class="chip">Curated</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="sectionHead">
+          <h3>UX &amp; Design Fundamentals</h3>
+          <p class="mini">
+            Research, patterns, typography, color, and accessibility.
+          </p>
+        </div>
+        <div class="grid">
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://www.nngroup.com/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Nielsen Norman Group</a
+                >
+              </h4>
+              <p>Research-backed UX knowledge.</p>
+              <div class="chips">
+                <span class="chip">UX</span><span class="chip">Research</span>
+              </div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://lawsofux.com/" target="_blank" rel="noreferrer"
+                  >Laws of UX</a
+                >
+              </h4>
+              <p>
+                Friendly mental models for designing interfaces that feel
+                natural.
+              </p>
+              <div class="chips">
+                <span class="chip">UX</span><span class="chip">Patterns</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://www.typewolf.com/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Typewolf</a
+                >
+              </h4>
+              <p>
+                Typography inspiration that won’t make your site look like a
+                template.
+              </p>
+              <div class="chips">
+                <span class="chip">Type</span><span class="chip">Inspo</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://coolors.co/" target="_blank" rel="noreferrer"
+                  >Coolors</a
+                >
+              </h4>
+              <p>Color palettes fast. Good for getting unstuck.</p>
+              <div class="chips">
+                <span class="chip">Color</span><span class="chip">Palette</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://www.getstark.co/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Stark</a
+                >
+              </h4>
+              <p>
+                Accessibility tools for designers (contrast checks and more).
+              </p>
+              <div class="chips">
+                <span class="chip">A11Y</span><span class="chip">Design</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FUN -->
+      <section id="fun" aria-labelledby="fun-title">
+        <h2 id="fun-title" class="sectionTitle">Careers + Fun</h2>
+        <div class="sectionHead">
+          <h3>Job Boards &amp; Careers</h3>
+          <p class="mini">Austin tech list, course lists, and job sites.</p>
+        </div>
+        <div class="grid">
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://codementorship.github.io/austin-tech-list/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Austin Tech List</a
+                >
+              </h4>
+              <p>Places in Austin that hire developers.</p>
+              <div class="chips"><span class="chip">Austin</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://medium.com/@traversymedia/70-job-find-websites-for-developers-other-tech-professionals-34cdb45518be"
+                  target="_blank"
+                  rel="noreferrer"
+                  >70+ Job Websites for Devs</a
+                >
+              </h4>
+              <p>Job find websites for developers and tech.</p>
+              <div class="chips"><span class="chip">Jobs</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://hired.com/" target="_blank" rel="noreferrer"
+                  >Hired.com</a
+                >
+              </h4>
+              <p>Job board for tech talent.</p>
+              <div class="chips"><span class="chip">Jobs</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://hubstafftalent.net/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Hubstaff Talent</a
+                >
+              </h4>
+              <p>Remote talent marketplace.</p>
+              <div class="chips"><span class="chip">Jobs</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://www.toptal.com/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Toptal</a
+                >
+              </h4>
+              <p>Freelance developers and designers.</p>
+              <div class="chips"><span class="chip">Jobs</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://www.freelancer.com/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Freelancer</a
+                >
+              </h4>
+              <p>Freelance and gig marketplace.</p>
+              <div class="chips"><span class="chip">Jobs</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="sectionHead">
+          <h3>Podcasts, Learning &amp; Blogs</h3>
+          <p class="mini">The CSS Podcast, Boot Dev, Suckless, and more.</p>
+        </div>
+        <div class="grid">
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://thecsspodcast.libsyn.com/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >The CSS Podcast</a
+                >
+              </h4>
+              <p>CSS-focused podcast.</p>
+              <div class="chips"><span class="chip">Podcast</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://suckless.org/" target="_blank" rel="noreferrer"
+                  >Suckless</a
+                >
+              </h4>
+              <p>Software that sucks less.</p>
+              <div class="chips"><span class="chip">Blog</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="sectionHead">
+          <h3>Videos &amp; Talks</h3>
+          <p class="mini">Talks, videos, and YouTube channels worth watching.</p>
+        </div>
+        <div class="grid">
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://www.youtube.com/watch?v=Tv223kX0SRg" target="_blank" rel="noreferrer"
+                  >Marighoul: “The rise of the indie web”</a
+                >
+              </h4>
+              <p>Talk on the indie web. More from the speaker: <a href="https://marighoul.com/" target="_blank" rel="noreferrer">marighoul.com</a>.</p>
+              <div class="chips"><span class="chip">Video</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://www.youtube.com/@AuroobaMakes/videos" target="_blank" rel="noreferrer"
+                  >Aurooba Makes</a
+                >
+              </h4>
+              <p>Developer Aurooba Ahmed's YouTube channel.</p>
+              <div class="chips"><span class="chip">Tutorials</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://www.youtube.com/@TechWorldwithNana/videos" target="_blank" rel="noreferrer"
+                  >TechWorld with Nana</a
+                >
+              </h4>
+              <p>Helping millions of engineers to advance their careers with DevOps & Cloud education 💙.</p>
+              <div class="chips"><span class="chip">Tutorials</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://www.youtube.com/@TheCodingSloth/videos" target="_blank" rel="noreferrer"
+                  >The Coding Sloth</a
+                >
+              </h4>
+              <p>Videos about software or something like that.</p>
+              <div class="chips"><span class="chip">Tutorials</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://www.youtube.com/@TheCodingTrain/videos" target="_blank" rel="noreferrer"
+                  >The Coding Train</a
+                >
+              </h4>
+              <p>All aboard! The Coding Train is on its way with creative coding video tutorials. Choo choo!</p>
+              <div class="chips"><span class="chip">Tutorials</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://www.youtube.com/@freeCodeCampOrg/videos" target="_blank" rel="noreferrer"
+                  >freeCodeCamp.org</a
+                >
+              </h4>
+              <p>Learn math, programming, and computer science for free. A 501(c)(3) tax-exempt charity.</p>
+              <div class="chips"><span class="chip">Tutorials</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://www.youtube.com/@KevinPowell/videos" target="_blank" rel="noreferrer"
+                  >Kevin Powell</a
+                >
+              </h4>
+              <p>Helping you learn how to make the web, and make it look good while you're at it.</p>
+              <div class="chips"><span class="chip">Tutorials</span></div>
+            </div>
+          </article>
+        </div>
+        <div class="sectionHead">
+          <h3>Fun Stuff</h3>
+          <p class="mini">
+            If you only consume productivity content, you become a LinkedIn
+            post.
+          </p>
+        </div>
+        <div class="grid">
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://jsconsole.com/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >JS Console</a
+                >
+              </h4>
+              <p>Browser-based JavaScript console.</p>
+              <div class="chips"><span class="chip">Tool</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://archive.org/" target="_blank" rel="noreferrer"
+                  >Internet Archive</a
+                >
+              </h4>
+              <p>Old web, old media, infinite rabbit holes.</p>
+              <div class="chips"><span class="chip">Weird</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://www.are.na/" target="_blank" rel="noreferrer"
+                  >Are.na</a
+                >
+              </h4>
+              <p>Organized inspiration and collage thinking.</p>
+              <div class="chips"><span class="chip">Mood</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://letterboxd.com/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Letterboxd</a
+                >
+              </h4>
+              <p>Movies, lists, and beautiful hot takes.</p>
+              <div class="chips"><span class="chip">Film</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://docs.google.com/presentation/d/1BAh6Hvdg8GQ1wiv8NMztYBP4OT5PSD538bQFyEcwG1U/edit?slide=id.gcb9a0b074_1_0#slide=id.gcb9a0b074_1_0"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Understanding Websites</a
+                >
+              </h4>
+              <p>A presentation from Leroy on how the web works.</p>
+              <div class="chips"><span class="chip">Education</span></div>
+            </div>
+          </article>
+          
+        </div>
+        <div class="sectionHead">
+          <h3>Engineering Blogs</h3>
+          <p class="mini">Meta, Google, AWS, Netflix, Uber, and more.</p>
+        </div>
+        <div class="grid">
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://engineering.fb.com/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Engineering at Meta</a
+                >
+              </h4>
+              <p>Meta (Facebook) engineering blog.</p>
+              <div class="chips"><span class="chip">Blog</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://aws.amazon.com/blogs/architecture/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >AWS Architecture Blog</a
+                >
+              </h4>
+              <p>AWS architecture and best practices.</p>
+              <div class="chips"><span class="chip">Blog</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://netflixtechblog.com/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Netflix Tech Blog</a
+                >
+              </h4>
+              <p>Netflix engineering and infrastructure.</p>
+              <div class="chips"><span class="chip">Blog</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://www.uber.com/blog/austin/engineering/" target="_blank" rel="noreferrer"
+                  >Uber Engineering</a
+                >
+              </h4>
+              <p>Uber engineering blog.</p>
+              <div class="chips"><span class="chip">Blog</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a href="https://dropbox.tech/" target="_blank" rel="noreferrer"
+                  >Dropbox Engineering</a
+                >
+              </h4>
+              <p>Dropbox tech blog.</p>
+              <div class="chips"><span class="chip">Blog</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://engineering.atspotify.com/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Spotify Engineering</a
+                >
+              </h4>
+              <p>Spotify engineering blog.</p>
+              <div class="chips"><span class="chip">Blog</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://github.blog/category/engineering/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >GitHub Engineering</a
+                >
+              </h4>
+              <p>GitHub engineering blog.</p>
+              <div class="chips"><span class="chip">Blog</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://stripe.com/blog/engineering"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Stripe Engineering</a
+                >
+              </h4>
+              <p>Stripe engineering blog.</p>
+              <div class="chips"><span class="chip">Blog</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://medium.com/airbnb-engineering"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Airbnb Tech Blog</a
+                >
+              </h4>
+              <p>Airbnb engineering and data science.</p>
+              <div class="chips"><span class="chip">Blog</span></div>
+            </div>
+          </article>
+          <article class="col-4">
+            <div class="card">
+              <h4>
+                <a
+                  href="https://shopify.engineering/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Shopify Engineering</a
+                >
+              </h4>
+              <p>Shopify engineering blog.</p>
+              <div class="chips"><span class="chip">Blog</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ABOUT -->
+      <section id="about" aria-labelledby="about-title">
+        <h2 id="about-title" class="sectionTitle">About</h2>
+        <div class="sectionHead">
+          <h3>Who made this?</h3>
+        </div>
+
+        <div class="panel">
+          <div class="panelInner">
+            <div class="aboutRow">
+              <div class="avatar">
+                <!-- alt describes the image for screen readers. width/height prevent layout shift when the image loads. loading="lazy" defers loading until near viewport. -->
+                <img
+                  src="https://avatars.githubusercontent.com/u/3495164?v=4"
+                  alt="Photo of Leroy"
+                  width="76"
+                  height="76"
+                  loading="lazy"
+                />
+              </div>
+
+              <div>
+                <p style="margin: 0 0 6px; color: var(--ink)">
+                  I'm Leroy. I build websites for work and collect ideas for
+                  fun.
+                </p>
+                <p
+                  style="
+                    margin: 0;
+                    color: var(--muted);
+                    font-size: 13px;
+                  "
+                >
+                  Cumbia &amp; Coding is my bookmark shrine for dev, design, and culture. It is meant to be curated, not exhaustive. Email me if you have suggestions or just want to say howdy!
+                </p>
+
+                <!-- Contact links. aria-label on each so “Email” / “GitHub” is clear out of context. -->
+                <div class="smallLinks" aria-label="Links">
+                  <a href="mailto:leroyrosales@gmail.com" aria-label="Email Leroy">Email</a>
+                  <a href="https://github.com/leroyrosales" aria-label="GitHub"
+                    >GitHub</a
+                  >
+                  <a
+                    href="https://www.linkedin.com/in/leroyrosales/"
+                    aria-label="LinkedIn"
+                    >LinkedIn</a
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Outside main: back-to-top is a convenience link. aria-label clarifies purpose. -->
+    <a href="#top" class="backToTop" aria-label="Back to top">Back to top</a>
+    <!-- footer is a landmark; wrap keeps content width consistent with the rest of the page. -->
+    <footer class="wrap">
+      <p style="margin: 0">
+        Cumbia &amp; Coding is a personal project and not affiliated with any of
+        the linked resources. All content is curated by Leroy Rosales.
+      </p>
+
+      <!-- small for fine print: semantically “side comments” or legal/copyright. -->
+      <p style="margin: 14px 0 0; font-size: 12px; color: var(--muted)">
+        <small>&copy; 2026 Cumbia &amp; Coding. Made with love, music, CSS, HTML, and no JavaScript.</small>
+      </p>
+    </footer>
+  </body>
+</html>
