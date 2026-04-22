@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Cumbia and Coding">
   <title>Cumbia and Coding</title>
   <!-- Squircle: grape matches theme-color -->
@@ -19,6 +20,6 @@
     stroke-linejoin="round"
     d="M 21 7 L 26 16 L 21 25"
   />
-  <!-- “Beat” accent -->
+  <!-- Beat accent (orange dot) -->
   <circle cx="16" cy="16" r="2.2" fill="#f98f21"/>
 </svg>
